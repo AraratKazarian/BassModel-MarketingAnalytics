@@ -1,0 +1,93 @@
+---
+title: "Homework on Bass Model | Ararat Kazarian"
+output:
+  pdf_document: default
+  beamer_presentation:
+    theme: CambridgeUS
+    colortheme: dolphin
+    fonttheme: structurebold
+    pandoc_args: "--pdf-engine=xelatex"
+    includes:
+      in_header: "latex-topmatter.tex"
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE,
+	collapse = TRUE,
+	out.height = "80%",
+	out.width = "80%",
+	size = "footnotesize",
+	tidy = F
+)
+library(ggplot2)
+library(ggpubr)
+library(diffusion)
+```
+
+The selected product is "Solving the Warehouse Puzzle" - https://time.com/collection/best-inventions-2023/6323154/arcbest-vaux/
+
+A look-alike innovation similar to the ArcBest Vaux system from the past is the forklift track, as it reflects a historical shift in material handling and logistics efficiency. Traditionally, warehouses and freight operations heavily relied on manual labor and basic equipment for loading and unloading goods. The forklift, when introduced, revolutionized this process by enabling the swift movement of heavy loads with minimal human effort. Its invention streamlined supply chain operations and significantly reduced the time and labor required for material handling.
+
+Similar to the ArcBest Vaux system, the forklift addressed inefficiencies by introducing a mechanized solution to a labor-intensive process. Both innovations share a common goal of optimizing the logistics and supply chain industry by leveraging technological advancements. The forklift, like the Vaux system, represented a paradigm shift towards automation and efficiency, paving the way for smoother and faster freight handling. Thus, drawing parallels between these innovations is apt, as they underscore the ongoing effort to modernize and improve traditional processes within the supply chain domain.
+
+The dataset, downloaded from Statista, contains data on the global forklift market volume from 2018 to 2022, with forecasts up to 2032. The source file contains information separately for the following regions: North America, Europe, Asia-Pacific, Rest of the World. Modified_data.csv is a cleaned and modified version of the original data. A new Total Sales column has been added, which is the sum of the four regional columns and represents total sales.
+
+```{r echo=FALSE, warning=FALSE}
+data = read.csv('modified_data.csv', fileEncoding="UTF-8-BOM")
+head(data)
+```
+
+Estimating Bass model parameters for the look-alike innovation.
+
+```{r echo=FALSE}
+forklift_sales = ggplot(data = data, aes(x = Year, y = Total.Sales)) +
+geom_bar(stat = 'identity') +
+ggtitle('Forklift truck sales, in thousand units')
+forklift_sales
+```
+
+```{r echo=FALSE}
+bass.f <- function(t,p,q){((p+q)**2/p)*exp(-(p+q)*t)/(1+(q/p)*exp(-(p+q)*t))**2}
+
+bass_m <- diffusion(data$Total.Sales)
+bass_m
+```
+
+```{r echo=FALSE}
+data$pred_sales = bass.f(1:15, p = 0.0112, q = 0.1035)*85229.6905
+model_result = ggplot(data = data, aes(x = Year, y = Total.Sales)) +
+geom_bar(stat = 'identity') +
+geom_point(mapping = aes(x=Year, y=pred_sales), color = 'red')
+model_result
+```
+
+```{r echo=FALSE}
+model_result_line = ggplot(data = data, aes(x = Year, y = Total.Sales)) +
+geom_line(mapping = aes(x=Year, y=pred_sales), color = 'red')
+
+ggarrange(model_result_line, model_result)
+```
+
+The parameters are p = 0.0112, q = 0.1035, m = 85229.6905.
+
+Making predictions of the diffusion of the innovation
+
+```{r echo=FALSE}
+fit <- diffusion(data$Total.Sales)
+fii <- predict(fit)
+plot(fit)
+```
+
+Prediction of the period when sales reached to their peak
+
+```{r echo=FALSE}
+p = 0.0112 
+q = 0.1035
+data.frame(Predicted=log(q/p)/(p+q), Actual=which.max(data$Total.Sales))
+```
